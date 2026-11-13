@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observatorio del Desempleo – INE Chile</title>
+  <meta name="description" content="Plataforma interactiva del Instituto Nacional de Estadísticas de Chile (INE) para la visualización y análisis de los boletines de empleo nacional y regional." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,400..900;1,6..12,400..900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #F8FAF9;
+      color: #1D332A;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .region-path {
+      transition: fill 0.2s ease, stroke 0.2s ease, opacity 0.2s ease;
+      cursor: pointer;
+    }
+    .region-path:hover { opacity: 0.88; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#F8FAF9] text-[#1D332A] antialiased selection:bg-[#004733] selection:text-white">
+
+  <!-- HEADER INSTITUCIONAL -->
+  <header class="bg-[#F8FAF9] border-b border-[#E2EBE5] sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+
+        <!-- Marca INE y Título -->
+        <div class="flex items-center justify-between gap-3 min-w-0">
+          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div class="flex items-center justify-center bg-[#004733] text-white font-black text-lg sm:text-2xl tracking-tighter px-3 sm:px-3.5 py-1.5 rounded-xl border border-emerald-900/30 select-none shrink-0" aria-label="Instituto Nacional de Estadísticas de Chile">
+              INE
+            </div>
+            <div class="h-8 w-[1.5px] bg-[#D1DDD6] shrink-0"></div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h1 class="text-[15px] sm:text-lg lg:text-xl font-black text-[#004733] tracking-tight leading-tight">
+                  Observatorio del desempleo
+                </h1>
+                <span class="inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#E8F5EE] text-[#004733] border border-[#CDE5D8] shrink-0">
+                  Chile
+                </span>
+              </div>
+              <p id="header-subtitle" class="text-[11px] sm:text-xs text-[#4A6357] font-semibold leading-snug mt-0.5">
+                Boletín ENE Nº 336 · Jul-Sep 2026
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector de Vista Principal -->
+        <nav aria-label="Selector de vista principal" class="flex items-center justify-center w-full xl:w-auto">
+          <div class="grid grid-cols-2 p-1 bg-[#E8F5EE] rounded-2xl border border-[#CDE5D8] w-full sm:w-auto gap-1">
+            <button id="btn-view-initial" onclick="setViewMode('initial')"
+              class="min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center bg-[#004733] text-white shadow-xs">
+              <span>Vista Inicial <span class="block sm:inline text-[10px] sm:text-xs font-semibold opacity-90">(Atomic Design)</span></span>
+            </button>
+            <button id="btn-view-detailed" onclick="setViewMode('detailed')"
+              class="min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center text-[#004733] hover:bg-white/70">
+              <span>Observatorio Detallado</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Controles: Selector de Boletín + Justificar / Comparar / Metodología -->
+        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-between xl:justify-end">
+          <select id="period-select" onchange="setPeriod(this.value)" aria-label="Seleccionar boletín ENE"
+            class="w-full sm:w-auto min-h-[40px] px-3 py-2 text-xs font-bold text-[#004733] bg-white border border-[#CDE5D8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004733] cursor-pointer">
+          </select>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button onclick="openJustificationModal(state.stage)"
+              class="min-h-[40px] flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-[#004733] bg-[#E8F5EE] hover:bg-[#D7EFE2] border border-[#CDE5D8] rounded-xl transition-colors cursor-pointer">
+              Justificar
+            </button>
+            <button onclick="openCompareModal()"
+              class="min-h-[40px] flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#004733] bg-white border border-[#D1DDD6] hover:bg-[#E8F5EE] rounded-xl transition-colors cursor-pointer">
+              Comparar
+            </button>
+            <button onclick="openMethodologyModal()"
+              class="min-h-[40px] flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#004733] bg-white border border-[#D1DDD6] hover:bg-[#E8F5EE] rounded-xl transition-colors cursor-pointer">
+              Metodología
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra deslizable de secciones (solo en Observatorio Detallado) -->
+    <div id="detailed-subribbon" class="hidden bg-[#004733] text-white py-2 px-3 sm:px-8 text-xs">
+      <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 overflow-x-auto scrollbar-none font-medium">
+          <span class="text-emerald-300 font-bold mr-1 text-[11px] hidden sm:inline">Secciones:</span>
+          <a href="#sec-kpis" class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 whitespace-nowrap text-[11px]">KPIs Nacionales</a>
+          <a href="#sec-mapa" class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 whitespace-nowrap text-[11px]">Mapa Regional</a>
+          <a href="#sec-evolucion" class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 whitespace-nowrap text-[11px]">Evolución 2025-2026</a>
+          <a href="#sec-ranking" class="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 whitespace-nowrap text-[11px]">Ranking Regional</a>
+        </div>
+        <button onclick="setViewMode('initial')" class="text-[11px] sm:text-xs font-bold text-white hover:text-emerald-200 underline underline-offset-4 cursor-pointer whitespace-nowrap shrink-0">
+          &lsaquo; Vista inicial
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main id="app-main" class="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7"></main>
+
+  <!-- FOOTER INSTITUCIONAL -->
+  <footer class="bg-white border-t border-[#E2EBE5] py-6 px-4 sm:px-8 mt-10">
+    <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[#4A6357]">
+      <div>
+        <strong class="text-[#004733]">Instituto Nacional de Estadísticas (INE Chile)</strong> · Encuesta Nacional de Empleo (ENE) · Boletines Oficiales Nº 333 al Nº 336 (2026).
+      </div>
+      <div class="text-[11px] text-[#5C7469]">
+        Cifras preliminares y definitivas expresadas en tasas (%) y miles de personas.
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL GENÉRICO REUTILIZABLE (Ficha Regional, Comparador, Metodología, Justificación) -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 z-50 bg-[#0D2118]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeModal()">
+    <div id="modal-panel" class="bg-white w-full sm:max-w-3xl max-h-[90vh] rounded-t-2xl sm:rounded-2xl shadow-2xl border border-[#CDE5D8] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-[#F8FAF9] border-b border-[#E2EBE5] flex items-center justify-between gap-3">
+        <div>
+          <span id="modal-kicker" class="text-[11px] font-extrabold uppercase tracking-wider text-[#0E6F52]"></span>
+          <h2 id="modal-title" class="text-base sm:text-lg font-black text-[#004733] leading-snug"></h2>
+        </div>
+        <button onclick="closeModal()" aria-label="Cerrar ventana"
+          class="w-9 h-9 rounded-xl bg-white border border-[#D1DDD6] text-[#1D332A] hover:bg-[#E8F5EE] font-bold flex items-center justify-center cursor-pointer shrink-0">
+          &times;
+        </button>
+      </div>
+      <div id="modal-body" class="p-5 overflow-y-auto space-y-5 text-sm"></div>
+    </div>
+  </div>
+
+<script>
+// ============================================================================
+// 1. DATOS OFICIALES VERIFICADOS INE CHILE (Boletines ENE Nº 333 - Nº 336)
+// ============================================================================
+const REGIONS = [
+  { id:'cl-ap', code:'XV', name:'Región de Arica y Parinacota', short:'Arica y Parinacota', zone:'norte', capital:'Arica' },
+  { id:'cl-ta', code:'I', name:'Región de Tarapacá', short:'Tarapacá', zone:'norte', capital:'Iquique' },
+  { id:'cl-an', code:'II', name:'Región de Antofagasta', short:'Antofagasta', zone:'norte', capital:'Antofagasta' },
+  { id:'cl-at', code:'III', name:'Región de Atacama', short:'Atacama', zone:'norte', capital:'Copiapó' },
+  { id:'cl-co', code:'IV', name:'Región de Coquimbo', short:'Coquimbo', zone:'norte', capital:'La Serena' },
+  { id:'cl-vs', code:'V', name:'Región de Valparaíso', short:'Valparaíso', zone:'centro', capital:'Valparaíso' },
+  { id:'cl-rm', code:'RM', name:'Región Metropolitana de Santiago', short:'Metropolitana', zone:'centro', capital:'Santiago' },
+  { id:'cl-oh', code:'VI', name:"Región del Libertador Gral. Bernardo O'Higgins", short:"O'Higgins", zone:'centro', capital:'Rancagua' },
+  { id:'cl-ml', code:'VII', name:'Región del Maule', short:'Maule', zone:'centro', capital:'Talca' },
+  { id:'cl-nb', code:'XVI', name:'Región de Ñuble', short:'Ñuble', zone:'sur', capital:'Chillán' },
+  { id:'cl-bi', code:'VIII', name:'Región del Biobío', short:'Biobío', zone:'sur', capital:'Concepción' },
+  { id:'cl-ar', code:'IX', name:'Región de La Araucanía', short:'La Araucanía', zone:'sur', capital:'Temuco' },
+  { id:'cl-lr', code:'XIV', name:'Región de Los Ríos', short:'Los Ríos', zone:'sur', capital:'Valdivia' },
+  { id:'cl-ll', code:'X', name:'Región de Los Lagos', short:'Los Lagos', zone:'sur', capital:'Puerto Montt' },
+  { id:'cl-ai', code:'XI', name:'Región de Aysén del Gral. Carlos Ibáñez del Campo', short:'Aysén', zone:'austral', capital:'Coyhaique' },
+  { id:'cl-ma', code:'XII', name:'Región de Magallanes y de la Antártica Chilena', short:'Magallanes', zone:'austral', capital:'Punta Arenas' }
+];
+const REGIONS_MAP = Object.fromEntries(REGIONS.map(r => [r.id, r]));
+
+const SVG_PATHS = {
+  'cl-ap': { path:'M 172 16 L 208 19 L 214 38 L 196 46 L 168 39 L 164 24 Z', cx:188, cy:31 },
+  'cl-ta': { path:'M 168 39 L 196 46 L 214 38 L 219 72 L 198 84 L 165 74 L 166 52 Z', cx:190, cy:61 },
+  'cl-an': { path:'M 165 74 L 198 84 L 219 72 L 226 122 L 233 158 L 198 168 L 162 153 L 158 118 L 164 88 Z', cx:194, cy:120 },
+  'cl-at': { path:'M 162 153 L 198 168 L 233 158 L 230 196 L 220 226 L 180 228 L 154 212 L 157 178 Z', cx:191, cy:192 },
+  'cl-co': { path:'M 154 212 L 180 228 L 220 226 L 212 268 L 194 286 L 158 284 L 149 252 L 152 228 Z', cx:182, cy:254 },
+  'cl-vs': { path:'M 158 284 L 194 286 L 208 304 L 195 324 L 168 322 L 147 314 L 148 296 Z', cx:177, cy:304 },
+  'cl-rm': { path:'M 168 322 L 195 324 L 208 334 L 198 356 L 174 354 L 166 338 Z', cx:184, cy:338 },
+  'cl-oh': { path:'M 147 314 L 168 322 L 166 338 L 174 354 L 198 356 L 192 376 L 162 376 L 143 362 L 145 334 Z', cx:169, cy:350 },
+  'cl-ml': { path:'M 143 362 L 162 376 L 192 376 L 188 416 L 160 418 L 138 402 L 140 376 Z', cx:165, cy:393 },
+  'cl-nb': { path:'M 138 402 L 160 418 L 188 416 L 184 442 L 156 442 L 136 432 L 137 416 Z', cx:160, cy:426 },
+  'cl-bi': { path:'M 136 432 L 156 442 L 184 442 L 180 472 L 152 470 L 130 458 L 132 444 Z', cx:157, cy:454 },
+  'cl-ar': { path:'M 130 458 L 152 470 L 180 472 L 176 508 L 146 506 L 126 492 L 128 474 Z', cx:153, cy:488 },
+  'cl-lr': { path:'M 126 492 L 146 506 L 176 508 L 171 536 L 142 534 L 122 522 L 124 504 Z', cx:148, cy:518 },
+  'cl-ll': { path:'M 122 522 L 142 534 L 171 536 L 168 578 L 154 594 L 136 572 L 128 584 L 118 578 L 115 544 Z M 112 556 C 110 564 114 576 122 578 C 120 568 116 558 112 556 Z', cx:144, cy:554 },
+  'cl-ai': { path:'M 136 572 L 154 594 L 168 578 L 164 668 L 138 672 L 124 646 L 132 626 L 122 612 L 134 596 Z M 116 618 L 126 626 L 120 642 L 112 630 Z', cx:146, cy:624 },
+  'cl-ma': { path:'M 138 672 L 164 668 L 166 724 L 192 734 L 188 768 L 164 778 L 146 764 L 132 728 L 140 702 Z M 146 770 L 172 782 L 178 812 L 154 826 L 138 798 Z M 182 784 L 204 792 L 200 818 L 180 812 Z', cx:162, cy:742 }
+};
+
+// Campos por región: [u, pq, py, cq, cy, male, fem, inf, part, emp, lf, unemp, empK]
+const TRIMESTERS = [
+  {
+    id:'2026-jul-sep', label:'Trimestre jul-sep 2026', short:'Jul-Sep 2026',
+    bulletin:'Boletín ENE Nº 336', pubDate:'29 de octubre de 2026', ref:'Julio - Septiembre 2026',
+    nat:[9.8, 9.6, 8.5, 0.2, 1.3, 9.3, 10.5, 26.4, 61.6, 55.5, 10282.7, 1008.0, 9274.7],
+    reg:{
+      'cl-ap':[7.8,9.4,6.6,-1.6,1.2,7.3,8.4,31.0,60.3,55.6,112.8,8.8,104.0],
+      'cl-ta':[8.5,7.8,8.0,0.7,0.5,7.2,10.2,29.8,65.0,59.5,212.8,18.2,194.6],
+      'cl-an':[6.7,6.3,7.9,0.4,-1.2,6.1,7.6,19.1,66.0,61.6,358.2,24.0,334.2],
+      'cl-at':[8.8,9.5,8.9,-0.7,-0.1,8.7,8.8,27.8,65.7,60.0,168.8,14.8,154.0],
+      'cl-co':[9.0,9.4,7.6,-0.4,1.4,9.0,8.9,29.2,59.4,54.1,424.5,38.2,386.3],
+      'cl-vs':[9.9,10.2,8.5,-0.3,1.4,8.4,11.7,28.9,59.6,53.8,1018.5,100.6,917.9],
+      'cl-rm':[10.4,9.8,8.8,0.6,1.6,9.9,11.0,23.5,65.5,58.7,4591.6,475.3,4116.3],
+      'cl-oh':[10.9,10.8,8.8,0.1,2.1,9.8,12.2,30.1,57.8,51.5,494.6,53.9,440.7],
+      'cl-ml':[9.7,9.5,7.5,0.2,2.2,8.2,11.6,30.9,56.3,50.9,568.4,55.1,513.3],
+      'cl-nb':[11.8,11.2,10.0,0.6,1.8,11.0,12.8,32.5,55.4,48.9,242.1,28.6,213.4],
+      'cl-bi':[10.5,10.7,10.1,-0.2,0.4,10.1,11.0,27.3,55.9,50.0,822.4,86.4,736.0],
+      'cl-ar':[9.4,10.1,9.1,-0.7,0.3,8.8,10.0,33.7,56.0,50.8,476.5,44.8,431.7],
+      'cl-lr':[9.8,10.2,8.9,-0.4,0.9,9.7,10.0,33.5,58.4,52.6,204.2,20.0,184.2],
+      'cl-ll':[7.7,7.8,5.5,-0.1,2.2,7.4,8.1,27.5,56.3,52.0,428.5,33.0,395.5],
+      'cl-ai':[4.0,4.0,4.7,0.0,-0.7,3.8,4.3,27.3,67.6,64.9,59.6,2.4,57.2],
+      'cl-ma':[6.4,6.9,6.5,-0.5,-0.1,6.5,6.4,20.2,68.0,63.6,99.0,6.3,92.7]
+    }
+  },
+  {
+    id:'2026-jun-ago', label:'Trimestre jun-ago 2026', short:'Jun-Ago 2026',
+    bulletin:'Boletín ENE Nº 335', pubDate:'30 de septiembre de 2026', ref:'Junio - Agosto 2026',
+    nat:[9.6, 9.5, 8.6, 0.1, 1.0, 9.1, 10.3, 26.3, 61.5, 55.6, 10263.1, 989.4, 9273.7],
+    reg:{
+      'cl-ap':[9.4,10.0,7.4,-0.6,2.0,10.2,8.4,31.4,60.5,54.8,112.5,10.6,101.9],
+      'cl-ta':[7.8,7.8,7.6,0.0,0.2,7.0,9.0,30.1,64.6,59.6,212.0,16.5,195.5],
+      'cl-an':[6.3,6.5,6.7,-0.2,-0.4,5.5,7.5,20.9,65.8,61.7,357.4,22.5,334.9],
+      'cl-at':[9.5,9.1,9.0,0.4,0.5,9.2,9.9,28.0,65.4,59.2,168.4,16.0,152.4],
+      'cl-co':[9.4,9.5,8.1,-0.1,1.3,9.1,9.8,29.4,59.3,53.7,423.8,39.8,384.0],
+      'cl-vs':[10.2,10.4,8.9,-0.2,1.3,9.1,11.6,28.7,59.5,53.4,1016.0,103.6,912.4],
+      'cl-rm':[9.8,9.5,8.9,0.3,0.9,9.3,10.4,23.4,65.3,58.9,4582.0,449.0,4133.0],
+      'cl-oh':[10.8,10.5,8.9,0.3,1.9,9.8,12.1,29.9,57.7,51.5,493.8,53.3,440.5],
+      'cl-ml':[9.5,10.0,7.9,-0.5,1.6,8.3,11.1,30.8,56.2,50.9,567.5,53.9,513.6],
+      'cl-nb':[11.2,11.0,9.9,0.2,1.3,10.4,12.2,32.3,55.3,49.1,241.8,27.1,214.7],
+      'cl-bi':[10.7,10.6,10.0,0.1,0.7,10.2,11.3,27.5,56.0,50.0,821.0,87.8,733.2],
+      'cl-ar':[10.1,10.0,9.4,0.1,0.7,9.4,11.0,33.4,56.1,50.4,476.0,48.1,427.9],
+      'cl-lr':[10.2,10.6,9.1,-0.4,1.1,9.8,10.7,32.3,58.3,52.4,204.0,20.8,183.2],
+      'cl-ll':[7.8,7.7,6.1,0.1,1.7,7.4,8.3,27.4,56.4,52.0,428.0,33.4,394.6],
+      'cl-ai':[4.0,4.0,4.4,0.0,-0.4,3.8,4.3,27.1,67.8,65.1,59.8,2.4,57.4],
+      'cl-ma':[6.9,5.9,6.4,1.0,0.5,6.7,7.2,20.4,67.9,63.2,99.1,6.8,92.3]
+    }
+  },
+  {
+    id:'2026-may-jul', label:'Trimestre may-jul 2026', short:'May-Jul 2026',
+    bulletin:'Boletín ENE Nº 334', pubDate:'28 de agosto de 2026', ref:'Mayo - Julio 2026',
+    nat:[9.5, 9.4, 8.7, 0.1, 0.8, 8.9, 10.3, 26.5, 61.7, 55.9, 10295.1, 981.0, 9314.0],
+    reg:{
+      'cl-ap':[10.0,9.6,8.3,0.4,1.7,9.6,10.5,31.6,60.8,54.7,113.0,11.3,101.7],
+      'cl-ta':[7.8,8.0,7.7,-0.2,0.1,7.1,8.8,30.3,64.5,59.5,212.5,16.6,195.9],
+      'cl-an':[6.5,6.2,6.8,0.3,-0.3,5.7,7.6,21.1,65.9,61.6,358.0,23.3,334.7],
+      'cl-at':[9.1,9.0,8.7,0.1,0.4,8.8,9.5,28.2,65.2,59.3,168.8,15.4,153.4],
+      'cl-co':[9.5,9.2,8.4,0.3,1.1,9.1,10.0,29.6,59.5,53.8,425.0,40.4,384.6],
+      'cl-vs':[10.4,10.4,9.2,0.0,1.2,9.4,11.7,28.6,59.7,53.5,1019.0,106.0,913.0],
+      'cl-rm':[9.5,9.4,9.2,0.1,0.3,8.9,10.3,23.6,65.4,59.2,4595.0,436.5,4158.5],
+      'cl-oh':[10.5,10.4,9.1,0.1,1.4,9.5,11.8,30.0,58.0,51.9,496.0,52.1,443.9],
+      'cl-ml':[10.0,10.4,8.2,-0.4,1.8,8.8,11.6,31.1,56.5,50.8,570.0,57.0,513.0],
+      'cl-nb':[11.0,10.5,10.1,0.5,0.9,10.2,12.0,32.6,55.6,49.5,243.0,26.7,216.3],
+      'cl-bi':[10.6,10.4,9.8,0.2,0.8,10.0,11.4,27.9,56.3,50.3,824.0,87.3,736.7],
+      'cl-ar':[10.0,10.1,9.3,-0.1,0.7,9.3,10.9,33.8,56.3,50.7,478.0,47.8,430.2],
+      'cl-lr':[10.6,10.2,9.0,0.4,1.6,10.0,11.3,32.0,58.5,52.3,205.0,21.7,183.3],
+      'cl-ll':[7.7,7.2,6.4,0.5,1.3,7.2,8.3,27.6,56.6,52.2,429.5,33.1,396.4],
+      'cl-ai':[4.0,4.6,4.2,-0.6,-0.2,3.8,4.3,27.2,68.0,65.3,60.0,2.4,57.6],
+      'cl-ma':[5.9,6.9,6.1,-1.0,-0.2,5.7,6.2,20.5,68.1,64.1,99.3,5.9,93.4]
+    }
+  },
+  {
+    id:'2026-abr-jun', label:'Trimestre abr-jun 2026', short:'Abr-Jun 2026',
+    bulletin:'Boletín ENE Nº 333', pubDate:'31 de julio de 2026', ref:'Abril - Junio 2026',
+    nat:[9.4, 9.4, 8.9, 0.0, 0.5, 8.7, 10.4, 27.0, 62.3, 56.4, 10383.6, 980.3, 9403.3],
+    reg:{
+      'cl-ap':[9.6,9.4,8.5,0.2,1.1,9.1,10.3,32.0,61.2,55.3,114.0,10.9,103.1],
+      'cl-ta':[8.0,7.9,7.9,0.1,0.1,7.3,9.0,30.8,64.9,59.7,214.0,17.1,196.9],
+      'cl-an':[6.2,6.4,6.8,-0.2,-0.6,5.5,7.2,21.5,66.2,62.1,361.0,22.4,338.6],
+      'cl-at':[9.0,8.9,8.8,0.1,0.2,8.6,9.6,28.5,65.5,59.6,170.0,15.3,154.7],
+      'cl-co':[9.2,9.0,8.5,0.2,0.7,8.8,9.8,30.0,59.9,54.4,429.0,39.5,389.5],
+      'cl-vs':[10.4,10.2,9.3,0.2,1.1,9.4,11.7,29.0,60.2,53.9,1028.0,106.9,921.1],
+      'cl-rm':[9.4,9.8,9.5,-0.4,-0.1,8.7,10.4,24.1,65.9,59.7,4634.0,435.6,4198.4],
+      'cl-oh':[10.4,10.0,9.2,0.4,1.2,9.4,11.7,30.4,58.6,52.5,501.0,52.1,448.9],
+      'cl-ml':[10.4,9.9,8.1,0.5,2.3,9.1,12.1,31.6,57.1,51.2,576.0,59.9,516.1],
+      'cl-nb':[10.5,10.2,10.5,0.3,0.0,9.7,11.5,33.1,56.1,50.2,245.5,25.8,219.7],
+      'cl-bi':[10.4,10.1,9.3,0.3,1.1,9.7,11.3,28.3,56.9,51.0,831.0,86.4,744.6],
+      'cl-ar':[10.1,9.8,9.3,0.3,0.8,9.4,11.0,34.3,56.8,51.1,482.5,48.7,433.8],
+      'cl-lr':[10.2,9.7,8.2,0.5,2.0,9.6,11.0,32.4,58.9,52.9,207.0,21.1,185.9],
+      'cl-ll':[7.2,7.0,6.4,0.2,0.8,6.7,7.9,28.0,57.1,53.0,433.0,31.2,401.8],
+      'cl-ai':[4.6,4.4,3.9,0.2,0.7,4.3,5.0,27.6,68.4,65.3,60.5,2.8,57.7],
+      'cl-ma':[6.9,6.4,6.3,0.5,0.6,6.5,7.4,20.8,68.5,63.8,100.2,6.9,93.3]
+    }
+  }
+];
+
+const HISTORICAL = [
+  { label:'T1 2025', rate:8.7 },
+  { label:'T2 2025', rate:8.9 },
+  { label:'T3 2025', rate:8.5 },
+  { label:'T4 2025', rate:8.0 },
+  { label:'T1 2026', rate:8.9 },
+  { label:'T2 2026', rate:9.4 },
+  { label:'T3 2026', rate:9.8 }
+];
+
+const ATOMIC_STAGES = [
+  { id:'atomos', title:'1. Átomos', subtitle:'Tokens de color INE, tipografía tabular y badges de estado',
+    why:'En estadística pública la precisión visual evita sesgos de lectura. Se define la paleta institucional verde INE (#004733), numeración tabular (tabular-nums) y umbrales semánticos de desocupación.' },
+  { id:'moleculas', title:'2. Moléculas', subtitle:'Tarjetas KPI, selectores de boletín y chips comparativos',
+    why:'Agrupan un indicador principal con su variación en puntos porcentuales (pp) interanual y trimestral para entregar contexto inmediato sin saturar al lector.' },
+  { id:'organismos', title:'3. Organismos', subtitle:'Mapa coroplético de Chile, evolución temporal y ranking',
+    why:'Permiten explorar patrones territoriales (Norte, Centro, Sur, Austral) y consultar la ficha técnica completa de cada región mediante interacción directa.' },
+  { id:'plantillas', title:'4. Plantillas', subtitle:'Retícula responsiva móvil-primero sin superposición',
+    why:'Reorganiza jerarquías en 1 columna para móviles y multi-columna en escritorio, manteniendo la barra de justificación deslizable para lectura completa en pantallas táctiles.' },
+  { id:'paginas', title:'5. Páginas', subtitle:'Integración en el Observatorio del Desempleo ENE',
+    why:'Consolida los últimos 4 boletines oficiales del INE Chile en una interfaz auditable y accesible tanto para ciudadanía como para investigadores.' }
+];
+
+const state = {
+  viewMode: 'initial', // 'initial' | 'detailed'
+  periodId: '2026-jul-sep',
+  selectedRegionId: 'cl-rm',
+  zoneFilter: 'all',
+  stage: 'atomos'
+};
+
+function fmtPct(v) { return v.toFixed(1).replace('.', ',') + '%'; }
+function fmtPp(v) {
+  const s = v > 0 ? '+' : '';
+  return s + v.toFixed(1).replace('.', ',') + ' pp';
+}
+function fmtK(v) { return v.toLocaleString('es-CL', { minimumFractionDigits:1, maximumFractionDigits:1 }) + ' mil'; }
+
+function getRateColor(r) {
+  if (r < 7.0) return '#0E6F52';
+  if (r < 9.0) return '#2B936E';
+  if (r < 10.2) return '#D97706';
+  return '#C93B2B';
+}
+
+function getZoneLabel(z) {
+  return { norte:'Zona Norte', centro:'Zona Centro', sur:'Zona Sur', austral:'Zona Austral' }[z] || z;
+}
+
+function getCurrentTrimester() {
+  return TRIMESTERS.find(t => t.id === state.periodId) || TRIMESTERS[0];
+}
+
+function parseStats(arr) {
+  return {
+    u:arr[0], pq:arr[1], py:arr[2], cq:arr[3], cy:arr[4],
+    male:arr[5], fem:arr[6], inf:arr[7], part:arr[8], emp:arr[9],
+    lf:arr[10], unemp:arr[11], empK:arr[12]
+  };
+}
+
+// ============================================================================
+// 2. ACCIONES DE NAVEGACIÓN Y RENDERIZADO
+// ============================================================================
+function initPeriodSelect() {
+  const sel = document.getElementById('period-select');
+  sel.innerHTML = TRIMESTERS.map(t =>
+    `<option value="${t.id}" ${t.id === state.periodId ? 'selected' : ''}>${t.bulletin} · ${t.short}</option>`
+  ).join('');
+}
+
+function setPeriod(id) {
+  state.periodId = id;
+  render();
+}
+
+function setViewMode(mode) {
+  state.viewMode = mode;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setStage(stageId) {
+  state.stage = stageId;
+  render();
+}
+
+function selectRegion(regionId) {
+  state.selectedRegionId = regionId;
+  render();
+}
+
+function setZoneFilter(zone) {
+  state.zoneFilter = zone;
+  render();
+}
+
+function updateHeaderUI() {
+  const t = getCurrentTrimester();
+  document.getElementById('header-subtitle').textContent = `${t.bulletin} · ${t.short} (pub. ${t.pubDate})`;
+  const btnInit = document.getElementById('btn-view-initial');
+  const btnDet = document.getElementById('btn-view-detailed');
+  const sub = document.getElementById('detailed-subribbon');
+  if (state.viewMode === 'initial') {
+    btnInit.className = 'min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center bg-[#004733] text-white shadow-xs';
+    btnDet.className = 'min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center text-[#004733] hover:bg-white/70';
+    sub.classList.add('hidden');
+  } else {
+    btnDet.className = 'min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center bg-[#004733] text-white shadow-xs';
+    btnInit.className = 'min-h-[44px] px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm font-bold leading-tight text-center text-[#004733] hover:bg-white/70';
+    sub.classList.remove('hidden');
+  }
+}
+
+// ============================================================================
+// 3. VISTA INICIAL (ATOMIC DESIGN + BARRA DESLIZABLE MÓVIL/TABLET)
+// ============================================================================
+function renderInitialView(t) {
+  const nat = parseStats(t.nat);
+  const regInfo = REGIONS_MAP[state.selectedRegionId];
+  const reg = parseStats(t.reg[state.selectedRegionId]);
+  const activeStage = ATOMIC_STAGES.find(s => s.id === state.stage) || ATOMIC_STAGES[0];
+
+  const sorted = REGIONS.map(r => ({ info:r, stats:parseStats(t.reg[r.id]) }))
+    .sort((a,b) => b.stats.u - a.stats.u);
+  const top3 = sorted.slice(0, 3);
+  const low3 = sorted.slice(-3).reverse();
+
+  return `
+    <!-- Barra deslizable de justificación Atomic Design (optimizada para móviles y tabletas) -->
+    <section aria-label="Barra de justificación por etapa" class="bg-white border border-[#CDE5D8] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <div>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#0E6F52]">Arquitectura Atomic Design · INE Chile</span>
+          <h2 class="text-sm sm:text-base font-black text-[#004733]">Justificación técnica por etapa del sistema</h2>
+        </div>
+        <button onclick="openJustificationModal('${activeStage.id}')" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-[#E8F5EE] hover:bg-[#D7EFE2] text-[#004733] text-xs font-bold border border-[#CDE5D8] cursor-pointer">
+          Ver justificación completa
+        </button>
+      </div>
+
+      <!-- Barra horizontal deslizable (scroll táctil en móvil/tableta sin cortes ni superposiciones) -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-2 snap-x snap-mandatory" role="tablist">
+        ${ATOMIC_STAGES.map(st => `
+          <button onclick="setStage('${st.id}')" role="tab" aria-selected="${st.id === state.stage}"
+            class="snap-start shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
+              st.id === state.stage
+                ? 'bg-[#004733] text-white border-[#004733] shadow-xs'
+                : 'bg-[#F8FAF9] text-[#1D332A] border-[#D1DDD6] hover:bg-[#E8F5EE]'
+            }">
+            ${st.title}
+          </button>
+        `).join('')}
+      </div>
+
+      <div class="mt-2 p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+        <div class="text-xs font-extrabold text-[#004733]">${activeStage.subtitle}</div>
+        <p class="text-xs text-[#4A6357] mt-1 leading-relaxed">${activeStage.why}</p>
+      </div>
+    </section>
+
+    <!-- Tablero Panorámico Resumido -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <!-- Bloque Nacional -->
+      <div class="lg:col-span-5 bg-white border border-[#CDE5D8] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-[#E8F5EE] text-[#004733] text-[11px] font-extrabold uppercase">${t.bulletin}</span>
+            <span class="text-xs font-semibold text-[#5C7469]">${t.ref}</span>
+          </div>
+          <p class="text-xs font-bold uppercase tracking-wide text-[#4A6357]">Tasa de desocupación nacional</p>
+          <div class="flex items-baseline gap-3 mt-1">
+            <span class="font-mono-num text-4xl sm:text-5xl font-black text-[#004733]">${fmtPct(nat.u)}</span>
+            <span class="font-mono-num text-xs font-bold px-2 py-1 rounded-lg ${nat.cy > 0 ? 'bg-red-50 text-[#C93B2B]' : 'bg-emerald-50 text-[#0E6F52]'}">
+              ${fmtPp(nat.cy)} (12m)
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-5">
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] text-[#4A6357] font-semibold">Mujeres</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A]">${fmtPct(nat.fem)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] text-[#4A6357] font-semibold">Hombres</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A]">${fmtPct(nat.male)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] text-[#4A6357] font-semibold">Informalidad</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A]">${fmtPct(nat.inf)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] text-[#4A6357] font-semibold">Ocupación</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A]">${fmtPct(nat.emp)}</div>
+            </div>
+          </div>
+        </div>
+        <button onclick="setViewMode('detailed')" class="mt-5 w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#004733] hover:bg-[#003627] text-white text-xs sm:text-sm font-bold cursor-pointer transition-colors">
+          Explorar Observatorio Detallado &rarr;
+        </button>
+      </div>
+
+      <!-- Bloque Regional Destacado + Acceso directo a Ver ficha -->
+      <div class="lg:col-span-7 bg-white border border-[#CDE5D8] rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#0E6F52]">Ficha Regional Interactiva</span>
+              <h3 class="text-base sm:text-lg font-black text-[#004733]">${regInfo.name} (${regInfo.code})</h3>
+            </div>
+            <select onchange="selectRegion(this.value)" aria-label="Elegir región"
+              class="px-3 py-2 rounded-xl border border-[#CDE5D8] bg-[#F8FAF9] text-xs font-bold text-[#004733] cursor-pointer">
+              ${REGIONS.map(r => `<option value="${r.id}" ${r.id === state.selectedRegionId ? 'selected' : ''}>${r.code} · ${r.short}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <div class="p-3 rounded-xl bg-[#E8F5EE] border border-[#CDE5D8]">
+              <div class="text-[11px] font-bold text-[#004733]">Desocupación</div>
+              <div class="font-mono-num text-2xl font-black text-[#004733] mt-0.5">${fmtPct(reg.u)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] font-semibold text-[#4A6357]">Var. 12 meses</div>
+              <div class="font-mono-num text-lg font-extrabold mt-0.5 ${reg.cy > 0 ? 'text-[#C93B2B]' : 'text-[#0E6F52]'}">${fmtPp(reg.cy)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] font-semibold text-[#4A6357]">Informalidad</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A] mt-0.5">${fmtPct(reg.inf)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] font-semibold text-[#4A6357]">Participación</div>
+              <div class="font-mono-num text-lg font-extrabold text-[#1D332A] mt-0.5">${fmtPct(reg.part)}</div>
+            </div>
+          </div>
+
+          <!-- Extremos del boletín -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-[#FFF8F7] border border-red-200">
+              <div class="text-[11px] font-extrabold uppercase text-[#C93B2B] mb-2">Mayores tasas del período</div>
+              <div class="space-y-1.5">
+                ${top3.map(item => `
+                  <div class="flex items-center justify-between text-xs">
+                    <button onclick="openRegionDetailModal('${item.info.id}')" class="font-bold text-[#1D332A] hover:underline text-left cursor-pointer">${item.info.short}</button>
+                    <span class="font-mono-num font-black text-[#C93B2B]">${fmtPct(item.stats.u)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F4FBF7] border border-[#CDE5D8]">
+              <div class="text-[11px] font-extrabold uppercase text-[#0E6F52] mb-2">Menores tasas del período</div>
+              <div class="space-y-1.5">
+                ${low3.map(item => `
+                  <div class="flex items-center justify-between text-xs">
+                    <button onclick="openRegionDetailModal('${item.info.id}')" class="font-bold text-[#1D332A] hover:underline text-left cursor-pointer">${item.info.short}</button>
+                    <span class="font-mono-num font-black text-[#0E6F52]">${fmtPct(item.stats.u)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#E2EBE5]">
+          <span class="text-xs text-[#4A6357]">Capital regional: <strong class="text-[#1D332A]">${regInfo.capital}</strong> · ${getZoneLabel(regInfo.zone)}</span>
+          <button onclick="openRegionDetailModal('${regInfo.id}')" class="min-h-[40px] px-4 py-2 rounded-xl bg-[#004733] hover:bg-[#003627] text-white text-xs font-bold cursor-pointer">
+            Ver ficha completa
+          </button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// ============================================================================
+// 4. OBSERVATORIO DETALLADO (KPIs + MAPA SVG + EVOLUCIÓN + RANKING)
+// ============================================================================
+function renderDetailedView(t) {
+  const nat = parseStats(t.nat);
+  const regInfo = REGIONS_MAP[state.selectedRegionId];
+  const reg = parseStats(t.reg[state.selectedRegionId]);
+
+  const filteredRegions = REGIONS
+    .filter(r => state.zoneFilter === 'all' || r.zone === state.zoneFilter)
+    .map(r => ({ info:r, stats:parseStats(t.reg[r.id]) }))
+    .sort((a,b) => b.stats.u - a.stats.u);
+
+  return `
+    <!-- 1. KPIs Nacionales -->
+    <section id="sec-kpis" class="mb-7">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-3">
+        <div>
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#0E6F52]">${t.bulletin} · Publicado el ${t.pubDate}</span>
+          <h2 class="text-lg sm:text-xl font-black text-[#004733]">Panorama Nacional de Empleo (${t.ref})</h2>
+        </div>
+        <span class="text-xs font-semibold text-[#4A6357]">Fuerza de trabajo: <strong class="font-mono-num text-[#004733]">${fmtK(nat.lf)}</strong></span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="bg-[#004733] text-white rounded-2xl p-4 shadow-xs">
+          <div class="text-xs font-bold text-emerald-200">Tasa de Desocupación</div>
+          <div class="font-mono-num text-3xl font-black mt-1">${fmtPct(nat.u)}</div>
+          <div class="text-[11px] mt-2 text-emerald-100">Trimestre anterior: <strong class="font-mono-num">${fmtPp(nat.cq)}</strong> · 12m: <strong class="font-mono-num">${fmtPp(nat.cy)}</strong></div>
+        </div>
+        <div class="bg-white border border-[#CDE5D8] rounded-2xl p-4 shadow-xs">
+          <div class="text-xs font-bold text-[#4A6357]">Brecha de Género</div>
+          <div class="flex items-baseline gap-3 mt-1">
+            <div><span class="text-[11px] text-[#5C7469]">Mujeres</span> <span class="font-mono-num text-xl font-black text-[#C93B2B] block">${fmtPct(nat.fem)}</span></div>
+            <div class="h-7 w-px bg-[#E2EBE5]"></div>
+            <div><span class="text-[11px] text-[#5C7469]">Hombres</span> <span class="font-mono-num text-xl font-black text-[#004733] block">${fmtPct(nat.male)}</span></div>
+          </div>
+          <div class="text-[11px] mt-2 text-[#4A6357]">Personas desocupadas: <strong class="font-mono-num">${fmtK(nat.unemp)}</strong></div>
+        </div>
+        <div class="bg-white border border-[#CDE5D8] rounded-2xl p-4 shadow-xs">
+          <div class="text-xs font-bold text-[#4A6357]">Ocupación Informal</div>
+          <div class="font-mono-num text-3xl font-black text-[#1D332A] mt-1">${fmtPct(nat.inf)}</div>
+          <div class="text-[11px] mt-2 text-[#4A6357]">Total personas ocupadas: <strong class="font-mono-num">${fmtK(nat.empK)}</strong></div>
+        </div>
+        <div class="bg-white border border-[#CDE5D8] rounded-2xl p-4 shadow-xs">
+          <div class="text-xs font-bold text-[#4A6357]">Participación y Ocupación</div>
+          <div class="flex items-baseline gap-3 mt-1">
+            <div><span class="text-[11px] text-[#5C7469]">Participación</span> <span class="font-mono-num text-xl font-black text-[#004733] block">${fmtPct(nat.part)}</span></div>
+            <div class="h-7 w-px bg-[#E2EBE5]"></div>
+            <div><span class="text-[11px] text-[#5C7469]">Ocupación</span> <span class="font-mono-num text-xl font-black text-[#0E6F52] block">${fmtPct(nat.emp)}</span></div>
+          </div>
+          <div class="text-[11px] mt-2 text-[#4A6357]">Población en edad de trabajar (15+)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Mapa Regional + Detalle de Región Seleccionada -->
+    <section id="sec-mapa" class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-7">
+      <div class="lg:col-span-5 bg-white border border-[#CDE5D8] rounded-2xl p-4 sm:p-5 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-base font-black text-[#004733]">Mapa Coroplético Regional</h3>
+            <p class="text-xs text-[#4A6357]">Pulsa una región para inspeccionar sus cifras</p>
+          </div>
+        </div>
+
+        <!-- Leyenda cromática -->
+        <div class="flex flex-wrap gap-2 text-[10px] font-bold mb-3">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-[#0E6F52]"><span class="w-2.5 h-2.5 rounded-xs bg-[#0E6F52]"></span> &lt; 7,0%</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-[#2B936E]"><span class="w-2.5 h-2.5 rounded-xs bg-[#2B936E]"></span> 7,0–8,9%</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700"><span class="w-2.5 h-2.5 rounded-xs bg-[#D97706]"></span> 9,0–10,1%</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-[#C93B2B]"><span class="w-2.5 h-2.5 rounded-xs bg-[#C93B2B]"></span> &ge; 10,2%</span>
+        </div>
+
+        <div class="bg-[#F8FAF9] border border-[#E2EBE5] rounded-xl p-2 flex justify-center">
+          <svg viewBox="70 0 210 845" class="w-full max-w-[230px] h-auto max-h-[460px]" role="img" aria-label="Mapa de Chile por regiones">
+            ${REGIONS.map(r => {
+              const geo = SVG_PATHS[r.id];
+              const st = parseStats(t.reg[r.id]);
+              const sel = r.id === state.selectedRegionId;
+              const fill = getRateColor(st.u);
+              return `
+                <g onclick="selectRegion('${r.id}')" class="cursor-pointer">
+                  <path d="${geo.path}" fill="${fill}" stroke="${sel ? '#0D2118' : '#FFFFFF'}" stroke-width="${sel ? '3' : '1.4'}" class="region-path">
+                    <title>${r.short}: ${fmtPct(st.u)}</title>
+                  </path>
+                  ${sel ? `<circle cx="${geo.cx}" cy="${geo.cy}" r="5" fill="#FFFFFF" stroke="#004733" stroke-width="2.5"></circle>` : ''}
+                </g>
+              `;
+            }).join('')}
+          </svg>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 flex flex-col gap-5">
+        <!-- Tarjeta Detalle Regional -->
+        <div class="bg-white border border-[#CDE5D8] rounded-2xl p-5 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#0E6F52]">${getZoneLabel(regInfo.zone)} · Capital: ${regInfo.capital}</span>
+              <h3 class="text-lg font-black text-[#004733]">${regInfo.name} (${regInfo.code})</h3>
+            </div>
+            <button onclick="openRegionDetailModal('${regInfo.id}')"
+              class="min-h-[40px] px-4 py-2 rounded-xl bg-[#004733] hover:bg-[#003627] text-white text-xs font-bold cursor-pointer shrink-0">
+              Ver ficha completa
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="p-3 rounded-xl bg-[#E8F5EE] border border-[#CDE5D8]">
+              <div class="text-[11px] font-bold text-[#004733]">Desocupación</div>
+              <div class="font-mono-num text-2xl font-black text-[#004733]">${fmtPct(reg.u)}</div>
+              <div class="text-[11px] text-[#4A6357] mt-0.5">Trim. ant.: ${fmtPct(reg.pq)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] font-semibold text-[#4A6357]">Variación 12 meses</div>
+              <div class="font-mono-num text-xl font-black ${reg.cy > 0 ? 'text-[#C93B2B]' : 'text-[#0E6F52]'}">${fmtPp(reg.cy)}</div>
+              <div class="text-[11px] text-[#5C7469] mt-0.5">Año ant.: ${fmtPct(reg.py)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+              <div class="text-[11px] font-semibold text-[#4A6357]">Mujeres / Hombres</div>
+              <div class="font-mono-num text-sm font-black text-[#1D332A] mt-1">${fmtPct(reg.fem)} / ${fmtPct(reg.male)}</div>
+              <div class="text-[11px] text-[#5C7469] mt-0.5">Informalidad: ${fmtPct(reg.inf)}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico SVG de Evolución Histórica -->
+        <div id="sec-evolucion" class="bg-white border border-[#CDE5D8] rounded-2xl p-5 shadow-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="text-base font-black text-[#004733]">Evolución Nacional Trimestral (2025 – 2026)</h3>
+              <p class="text-xs text-[#4A6357]">Serie histórica oficial de tasa de desocupación nacional (%)</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg bg-[#E8F5EE] text-[#004733] font-mono-num text-xs font-bold">Último dato: 9,8%</span>
+          </div>
+          ${renderHistorySvg()}
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Ranking Regional Completo -->
+    <section id="sec-ranking" class="bg-white border border-[#CDE5D8] rounded-2xl p-4 sm:p-5 shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-base sm:text-lg font-black text-[#004733]">Ranking Regional de Desocupación</h3>
+          <p class="text-xs text-[#4A6357]">Ordenado de mayor a menor tasa en ${t.short} · Línea nacional: <strong class="font-mono-num text-[#004733]">${fmtPct(nat.u)}</strong></p>
+        </div>
+        <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+          ${[
+            ['all','Todas (16)'], ['norte','Norte'], ['centro','Centro'], ['sur','Sur'], ['austral','Austral']
+          ].map(([zk, zl]) => `
+            <button onclick="setZoneFilter('${zk}')"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer border ${
+                state.zoneFilter === zk ? 'bg-[#004733] text-white border-[#004733]' : 'bg-[#F8FAF9] text-[#1D332A] border-[#D1DDD6] hover:bg-[#E8F5EE]'
+              }">${zl}</button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        ${filteredRegions.map((item, idx) => {
+          const isSel = item.info.id === state.selectedRegionId;
+          const color = getRateColor(item.stats.u);
+          const barW = Math.min(100, (item.stats.u / 14) * 100).toFixed(1);
+          return `
+            <div class="p-3 rounded-xl border ${isSel ? 'border-[#004733] bg-[#F4FBF7]' : 'border-[#E2EBE5] bg-[#F8FAF9]'} flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <button onclick="selectRegion('${item.info.id}')" class="flex items-center gap-2 min-w-0 text-left cursor-pointer">
+                  <span class="w-6 h-6 rounded-md bg-white border border-[#D1DDD6] font-mono-num text-[11px] font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+                  <span class="font-bold text-xs sm:text-sm text-[#1D332A] truncate">${item.info.short} <span class="text-[#5C7469] font-normal">(${item.info.code})</span></span>
+                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="font-mono-num text-sm font-black" style="color:${color}">${fmtPct(item.stats.u)}</span>
+                  <button onclick="openRegionDetailModal('${item.info.id}')" class="px-2.5 py-1 rounded-lg bg-white border border-[#CDE5D8] hover:bg-[#E8F5EE] text-[#004733] text-[11px] font-bold cursor-pointer">
+                    Ver ficha
+                  </button>
+                </div>
+              </div>
+              <div class="w-full h-2 bg-[#E2EBE5] rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width:${barW}%; background-color:${color};"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderHistorySvg() {
+  const w = 640, h = 190, padL = 40, padR = 24, padT = 24, padB = 34;
+  const minR = 7.5, maxR = 10.3;
+  const xStep = (w - padL - padR) / (HISTORICAL.length - 1);
+  const pts = HISTORICAL.map((p, i) => {
+    const x = padL + i * xStep;
+    const y = padT + ((maxR - p.rate) / (maxR - minR)) * (h - padT - padB);
+    return { x, y, ...p };
+  });
+  const poly = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${padL},${h-padB} ${poly} ${pts[pts.length-1].x.toFixed(1)},${h-padB}`;
+  return `
+    <svg viewBox="0 0 ${w} ${h}" class="w-full h-auto" role="img" aria-label="Evolución tasa de desocupación nacional">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#004733" stop-opacity="0.22" />
+          <stop offset="100%" stop-color="#004733" stop-opacity="0.01" />
+        </linearGradient>
+      </defs>
+      ${[8.0, 9.0, 10.0].map(val => {
+        const y = padT + ((maxR - val) / (maxR - minR)) * (h - padT - padB);
+        return `
+          <line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#E2EBE5" stroke-dasharray="4 4" />
+          <text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="#5C7469" class="font-mono-num">${val.toFixed(1)}%</text>
+        `;
+      }).join('')}
+      <polygon points="${area}" fill="url(#areaGrad)" />
+      <polyline points="${poly}" fill="none" stroke="#004733" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      ${pts.map(p => `
+        <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#FFFFFF" stroke="#004733" stroke-width="2.5" />
+        <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="11" font-weight="800" fill="#004733" class="font-mono-num">${p.rate.toFixed(1).replace('.',',')}%</text>
+        <text x="${p.x}" y="${h - 10}" text-anchor="middle" font-size="10" font-weight="600" fill="#4A6357">${p.label}</text>
+      `).join('')}
+    </svg>
+  `;
+}
+
+// ============================================================================
+// 5. MODALES INTERACTIVOS (Ver Ficha, Comparar, Metodología, Justificación)
+// ============================================================================
+function showModal(kicker, title, bodyHtml) {
+  document.getElementById('modal-kicker').textContent = kicker;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.add('hidden');
+}
+
+function openRegionDetailModal(regionId) {
+  const t = getCurrentTrimester();
+  const r = REGIONS_MAP[regionId];
+  const st = parseStats(t.reg[regionId]);
+  const nat = parseStats(t.nat);
+  const gapNat = st.u - nat.u;
+
+  showModal(
+    `${t.bulletin} · ${t.ref}`,
+    `${r.name} (${r.code})`,
+    `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="p-3.5 rounded-xl bg-[#004733] text-white">
+          <div class="text-[11px] text-emerald-200 font-bold">Desocupación</div>
+          <div class="font-mono-num text-2xl font-black mt-0.5">${fmtPct(st.u)}</div>
+          <div class="text-[11px] text-emerald-100 mt-1">Brecha país: ${fmtPp(gapNat)}</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5]">
+          <div class="text-[11px] text-[#4A6357] font-bold">Var. Trimestral / Anual</div>
+          <div class="font-mono-num text-base font-black text-[#1D332A] mt-1">${fmtPp(st.cq)} / ${fmtPp(st.cy)}</div>
+          <div class="text-[11px] text-[#5C7469] mt-1">Año ant.: ${fmtPct(st.py)}</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E2EBE5] col-span-2 sm:col-span-1">
+          <div class="text-[11px] text-[#4A6357] font-bold">Ocupación Informal</div>
+          <div class="font-mono-num text-2xl font-black text-[#1D332A] mt-0.5">${fmtPct(st.inf)}</div>
+          <div class="text-[11px] text-[#5C7469] mt-1">Capital: ${r.capital}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="p-4 rounded-xl border border-[#CDE5D8] bg-[#F8FAF9]">
+          <h4 class="text-xs font-extrabold uppercase text-[#004733] mb-2">Desocupación por Sexo</h4>
+          <div class="flex justify-between text-xs py-1 border-b border-[#E2EBE5]"><span>Mujeres</span><strong class="font-mono-num">${fmtPct(st.fem)}</strong></div>
+          <div class="flex justify-between text-xs py-1"><span>Hombres</span><strong class="font-mono-num">${fmtPct(st.male)}</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-[#CDE5D8] bg-[#F8FAF9]">
+          <h4 class="text-xs font-extrabold uppercase text-[#004733] mb-2">Fuerza de Trabajo y Tasas</h4>
+          <div class="flex justify-between text-xs py-1 border-b border-[#E2EBE5]"><span>Fuerza de trabajo</span><strong class="font-mono-num">${fmtK(st.lf)}</strong></div>
+          <div class="flex justify-between text-xs py-1 border-b border-[#E2EBE5]"><span>Personas ocupadas</span><strong class="font-mono-num">${fmtK(st.empK)}</strong></div>
+          <div class="flex justify-between text-xs py-1 border-b border-[#E2EBE5]"><span>Personas desocupadas</span><strong class="font-mono-num">${fmtK(st.unemp)}</strong></div>
+          <div class="flex justify-between text-xs py-1"><span>Participación / Ocupación</span><strong class="font-mono-num">${fmtPct(st.part)} / ${fmtPct(st.emp)}</strong></div>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="selectRegion('${r.id}'); closeModal();" class="px-4 py-2 rounded-xl bg-[#004733] text-white text-xs font-bold cursor-pointer">
+          Fijar región en el tablero
+        </button>
+      </div>
+    `
+  );
+}
+
+function openCompareModal() {
+  const t = getCurrentTrimester();
+  const sorted = REGIONS.map(r => ({ info:r, stats:parseStats(t.reg[r.id]) })).sort((a,b) => b.stats.u - a.stats.u);
+  showModal(
+    t.bulletin,
+    `Comparativa Regional Completa (${t.short})`,
+    `
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b-2 border-[#CDE5D8] text-[#004733]">
+              <th class="py-2 pr-3">Región</th>
+              <th class="py-2 px-2 text-right">Desoc.</th>
+              <th class="py-2 px-2 text-right">Var. 12m</th>
+              <th class="py-2 px-2 text-right">Mujeres</th>
+              <th class="py-2 px-2 text-right">Hombres</th>
+              <th class="py-2 pl-2 text-right">Informalidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map(({info, stats}) => `
+              <tr class="border-b border-[#E2EBE5] hover:bg-[#F8FAF9]">
+                <td class="py-2 pr-3 font-bold text-[#1D332A]">${info.short}</td>
+                <td class="py-2 px-2 text-right font-mono-num font-black" style="color:${getRateColor(stats.u)}">${fmtPct(stats.u)}</td>
+                <td class="py-2 px-2 text-right font-mono-num">${fmtPp(stats.cy)}</td>
+                <td class="py-2 px-2 text-right font-mono-num">${fmtPct(stats.fem)}</td>
+                <td class="py-2 px-2 text-right font-mono-num">${fmtPct(stats.male)}</td>
+                <td class="py-2 pl-2 text-right font-mono-num">${fmtPct(stats.inf)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+  );
+}
+
+function openMethodologyModal() {
+  showModal(
+    'Nota Técnica · ENE Chile',
+    'Metodología de la Encuesta Nacional de Empleo',
+    `
+      <p class="text-[#4A6357] leading-relaxed">
+        La <strong class="text-[#004733]">Encuesta Nacional de Empleo (ENE)</strong> del Instituto Nacional de Estadísticas (INE) caracteriza a la población en edad de trabajar (15 años y más) residente en viviendas particulares del territorio nacional, utilizando trimestres móviles continuos.
+      </p>
+      <ul class="list-disc pl-5 space-y-2 text-xs text-[#1D332A]">
+        <li><strong>Tasa de desocupación:</strong> Porcentaje de personas desocupadas respecto de la fuerza de trabajo total (ocupados + desocupados).</li>
+        <li><strong>Tasa de ocupación informal:</strong> Porcentaje de personas ocupadas que carecen de acceso a seguridad social (salud y previsión) por concepto de su vínculo laboral.</li>
+        <li><strong>Cobertura de datos en este observatorio:</strong> Boletines Oficiales ENE Nº 333 (abr-jun 2026), Nº 334 (may-jul 2026), Nº 335 (jun-ago 2026) y Nº 336 (jul-sep 2026).</li>
+      </ul>
+    `
+  );
+}
+
+function openJustificationModal(stageId) {
+  showModal(
+    'Fundamentación del Sistema',
+    'Justificación de Diseño e Ingeniería de Información',
+    ATOMIC_STAGES.map(st => `
+      <div class="p-3.5 rounded-xl border ${st.id === stageId ? 'border-[#004733] bg-[#F4FBF7]' : 'border-[#E2EBE5] bg-[#F8FAF9]'}">
+        <div class="font-black text-xs text-[#004733]">${st.title} — ${st.subtitle}</div>
+        <p class="text-xs text-[#4A6357] mt-1 leading-relaxed">${st.why}</p>
+      </div>
+    `).join('')
+  );
+}
+
+function render() {
+  updateHeaderUI();
+  const t = getCurrentTrimester();
+  const main = document.getElementById('app-main');
+  main.innerHTML = state.viewMode === 'initial' ? renderInitialView(t) : renderDetailedView(t);
+}
+
+initPeriodSelect();
+render();
+</script>
+</body>
+</html>
